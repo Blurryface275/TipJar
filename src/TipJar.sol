@@ -30,24 +30,27 @@ contract TipJar {
     error TipJar__ZeroAddress();
     
     // State variables 
-    address private i_owner; // address for owner of the tip jar - the only eligible address to withdraw all of the money
+    address private s_owner; // address for owner of the tip jar - the only eligible address to withdraw all of the money
     mapping (address => uint256) s_tips;
     uint256 private s_totalTips; // total tips from all of the tip has been donated by another user
 
     // Events
     event TipReceived(address indexed tipper, uint256 amount);
     event Withdrawn(address indexed owner, uint256 amount);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
-    constructor (address msg.owner){
-        i_owner = msg.owner;
+    // Constructor
+    constructor (){
+        s_owner = msg.sender;
     }
 
     // Modifiers
     // This part is used to do checking that need to be run before or after a function
     modifier onlyOwner(){
-        if(msg,sender != i_owner){
-            revert(TipJar__NotOwner());
+        if(msg.sender != s_owner){
+            revert TipJar__NotOwner();
         }
+        _;
     }
 
     // Functions
@@ -57,7 +60,7 @@ contract TipJar {
     // I use payable because we will make this function able to receives ETH, payable function has already built in msg.value properties
     function tip() external payable{
         if (msg.value == 0){
-            revert(TipJar__NoTips());
+            revert TipJar__NoTips();
         }
         s_tips[msg.sender] += msg.value; // update total tips has been donated by user
         s_totalTips += msg.value; // update total tips in jar
@@ -68,21 +71,37 @@ contract TipJar {
         // use CEI : Checks, Effets, Interaction
         // Checks : Ensure sufficient balance before perform withdrawing actions (s_totalTips>0)
         if (s_totalTips <= 0){
-            revert(TipJar__NoTips());
+            revert TipJar__NoTips();
         }
 
         // Effects : Update TipJar's Balances
         uint256 amount = s_totalTips; // saving current total tips collected to a local variable
         s_totalTips = 0; // overwrtie current total tips is 0
-        emit Withdrawn(i_owner, amount); // writing this action to events
+        emit Withdrawn(s_owner, amount); // writing this action to events
 
         // Interaction : Sending ETH from all TipJar to owner of the TipJar
-        (bool ok, ) = i_owner.call{value: amount}(""); // transfer ETH from TipJar to owner
+        (bool ok, ) = s_owner.call{value: amount}(""); // transfer ETH from TipJar to owner
         if (!ok){
             revert TipJar__WithdrawFailed();
         }
     }
 
+    function transferOwnership(address newOwner) external onlyOwner{
+        if (newOwner == address(0)){
+            revert TipJar__ZeroAddress();
+        }
+        emit OwnershipTransferred(s_owner, newOwner); // writing this ownershiptransferring action to events
+        s_owner = newOwner;
+    }
+    
+    // Getter Function
+    function getOwner() external view returns (address){
+        return s_owner;
+    }
+
+    function getTotalTips() external view returns (uint256){
+        return s_totalTips;
+    }
    
 
 
