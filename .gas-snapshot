@@ -1,0 +1,8 @@
+TipJarTest:test_EpochIncreasesAfterWithdraw() (gas: 113272)
+TipJarTest:test_OwnerIsSetCorrectly() (gas: 10242)
+TipJarTest:test_TipIncreasesTotalTips() (gas: 112932)
+TipJarTest:test_TipRevertIfZero() (gas: 12177)
+TipJarTest:test_TransferOwnership() (gas: 22005)
+TipJarTest:test_WithdrawRevertsIfNoTips() (gas: 15508)
+TipJarTest:test_WithdrawRevertsIfNotOwner() (gas: 115892)
+TipJarTest:test_WithdrawSendsETHToOwner() (gas: 116214)
