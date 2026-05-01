@@ -35,8 +35,8 @@ contract TipJar {
     uint256 private s_totalTips; // total tips from all of the tip has been donated by another user
 
     // Events
-    events TipReceived(address indexed tipper, uint256 amount);
-    events Withdrawn(address indexed owner, uint256 amount);
+    event TipReceived(address indexed tipper, uint256 amount);
+    event Withdrawn(address indexed owner, uint256 amount);
 
     constructor (address msg.owner){
         i_owner = msg.owner;
@@ -57,14 +57,31 @@ contract TipJar {
     // I use payable because we will make this function able to receives ETH, payable function has already built in msg.value properties
     function tip() external payable{
         if (msg.value == 0){
-            revert(TipJar_NoTips());
+            revert(TipJar__NoTips());
         }
         s_tips[msg.sender] += msg.value; // update total tips has been donated by user
         s_totalTips += msg.value; // update total tips in jar
         emit TipReceived(msg.sender, msg.value); // we will broadcast who has been donating tip and how much they donated
     }
 
+    function withdraw() external onlyOwner{
+        // use CEI : Checks, Effets, Interaction
+        // Checks : Ensure sufficient balance before perform withdrawing actions (s_totalTips>0)
+        if (s_totalTips <= 0){
+            revert(TipJar__NoTips());
+        }
 
+        // Effects : Update TipJar's Balances
+        uint256 amount = s_totalTips; // saving current total tips collected to a local variable
+        s_totalTips = 0; // overwrtie current total tips is 0
+        emit Withdrawn(i_owner, amount); // writing this action to events
+
+        // Interaction : Sending ETH from all TipJar to owner of the TipJar
+        (bool ok, ) = i_owner.call{value: amount}(""); // transfer ETH from TipJar to owner
+        if (!ok){
+            revert TipJar__WithdrawFailed();
+        }
+    }
 
    
 
