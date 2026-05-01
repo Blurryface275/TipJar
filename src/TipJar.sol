@@ -20,7 +20,7 @@
 // view & pure functions
 
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.33;
 
 contract TipJar {
     // Errors
@@ -31,14 +31,17 @@ contract TipJar {
     
     // State variables 
     address private s_owner; // address for owner of the tip jar - the only eligible address to withdraw all of the money
-    mapping (address => uint256) s_tips;
     uint256 private s_totalTips; // total tips from all of the tip has been donated by another user
+    uint256 private s_epoch; 
+    address[] private s_tippers;
+
+    mapping (uint256 => mapping(address => uint256)) s_tips; // epoch, address, amount
 
     // Events
     event TipReceived(address indexed tipper, uint256 amount);
     event Withdrawn(address indexed owner, uint256 amount);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
+        
     // Constructor
     constructor (){
         s_owner = msg.sender;
@@ -62,7 +65,11 @@ contract TipJar {
         if (msg.value == 0){
             revert TipJar__NoTips();
         }
-        s_tips[msg.sender] += msg.value; // update total tips has been donated by user
+        if (s_tips[s_epoch][msg.sender]==0){
+            s_tippers.push(msg.sender);
+        }
+        
+        s_tips[s_epoch][msg.sender] += msg.value; // update total tips has been donated by user
         s_totalTips += msg.value; // update total tips in jar
         emit TipReceived(msg.sender, msg.value); // we will broadcast who has been donating tip and how much they donated
     }
@@ -77,6 +84,8 @@ contract TipJar {
         // Effects : Update TipJar's Balances
         uint256 amount = s_totalTips; // saving current total tips collected to a local variable
         s_totalTips = 0; // overwrtie current total tips is 0
+        s_epoch+=1;
+        delete s_tippers;
         emit Withdrawn(s_owner, amount); // writing this action to events
 
         // Interaction : Sending ETH from all TipJar to owner of the TipJar
@@ -99,10 +108,16 @@ contract TipJar {
         return s_owner;
     }
 
+    function getTip(address tipper) external view returns (uint256){
+        return s_tips[s_epoch][tipper];
+    }
+
     function getTotalTips() external view returns (uint256){
         return s_totalTips;
     }
-   
 
+    function getEpoch() external view returns (uint256){
+    return s_epoch;
+}
 
 }
